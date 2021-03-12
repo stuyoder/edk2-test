@@ -132,6 +132,7 @@ then
     cp $ProcessorType/MiscBootServicesBBTest.efi               $Framework/Test/ > NUL
     
     cp $ProcessorType/VariableServicesBBTest.efi               $Framework/Test/ > NUL
+    cp $ProcessorType/BBSRVariableSizeTest.efi                 $Framework/Test/ > NUL
     cp $ProcessorType/TimeServicesBBTest.efi                   $Framework/Test/ > NUL
     cp $ProcessorType/MiscRuntimeServicesBBTest.efi            $Framework/Test/ > NUL
 
