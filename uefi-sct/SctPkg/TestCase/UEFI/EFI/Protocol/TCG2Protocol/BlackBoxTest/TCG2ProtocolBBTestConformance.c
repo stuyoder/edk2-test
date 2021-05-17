@@ -78,6 +78,52 @@ BBTestGetCapabilityConformanceTest (
   return EFI_SUCCESS;
 }
 
+/**
+ *  @brief Entrypoint for GetActivePcrBanks() Function Test.
+ *         3 checkpoints will be tested.
+ *  @param This a pointer of EFI_BB_TEST_PROTOCOL
+ *  @param ClientInterface A pointer to the interface array under test
+ *  @param TestLevel Test "thoroughness" control
+ *  @param SupportHandle A handle containing protocols required
+ *  @return EFI_SUCCESS
+ *  @return EFI_NOT_FOUND
+ */
+
+EFI_STATUS
+BBTestGetActivePcrBanksConformanceTest (
+  IN EFI_BB_TEST_PROTOCOL       *This,
+  IN VOID                       *ClientInterface,
+  IN EFI_TEST_LEVEL             TestLevel,
+  IN EFI_HANDLE                 SupportHandle
+  )
+{
+  EFI_STANDARD_TEST_LIBRARY_PROTOCOL    *StandardLib;
+  EFI_STATUS                            Status;
+  EFI_TCG2_PROTOCOL                     *TCG2;
+  //
+  // init
+  //
+  TCG2 = (EFI_TCG2_PROTOCOL*)ClientInterface;
+
+  // Get the Standard Library Interface
+  //
+  Status = gtBS->HandleProtocol (
+                   SupportHandle,
+                   &gEfiStandardTestLibraryGuid,
+                   (VOID **) &StandardLib
+                   );
+  if (EFI_ERROR(Status)) {
+    return Status;
+  }
+
+  //Test Using NULL Pointer
+  BBTestGetActivePcrBanksConformanceTestCheckpoint1 (StandardLib, TCG2);
+
+  //Test with correct size field
+ BBTestGetActivePcrBanksConformanceTestCheckpoint2 (StandardLib, TCG2);
+
+  return EFI_SUCCESS;
+}
 
 EFI_STATUS
 BBTestGetCapabilityConformanceTestCheckpoint1 (
@@ -287,3 +333,93 @@ BBTestGetCapabilityConformanceTestCheckpoint3 (
   return EFI_SUCCESS;
 }
 
+EFI_STATUS
+BBTestGetActivePcrBanksConformanceTestCheckpoint1 (
+  IN EFI_STANDARD_TEST_LIBRARY_PROTOCOL    *StandardLib,
+  IN EFI_TCG2_PROTOCOL                     *TCG2
+  )
+{
+  EFI_TEST_ASSERTION                    AssertionType;
+  EFI_STATUS                            Status;
+
+  EFI_TCG2_EVENT_ALGORITHM_BITMAP *ActivePcrBanks = NULL;
+  Status = TCG2->GetActivePcrBanks (
+                           TCG2,
+                           ActivePcrBanks);
+
+  // Ensure GetCapablity returns Invalid Parameter when passing in NULL pointer
+  if (EFI_INVALID_PARAMETER == Status) {
+    AssertionType = EFI_TEST_ASSERTION_PASSED;
+  } else {
+    AssertionType = EFI_TEST_ASSERTION_FAILED;
+  }
+
+  StandardLib->RecordAssertion (
+                 StandardLib,
+                 AssertionType,
+                 gTcg2ConformanceTestAssertionGuid004,
+                 L"TCG2_PROTOCOL.GetActivePcrBanks - GetActivePcrBanks() returns EFI_INVALID_PARAMETER with NULL pointer Passed in",
+                 L"%a:%d: Status - %r",
+                 __FILE__,
+                 (UINTN)__LINE__,
+                 Status
+                 );
+
+  return EFI_SUCCESS;
+}
+
+EFI_STATUS
+BBTestGetActivePcrBanksConformanceTestCheckpoint2 (
+  IN EFI_STANDARD_TEST_LIBRARY_PROTOCOL    *StandardLib,
+  IN EFI_TCG2_PROTOCOL                     *TCG2
+  )
+{
+  EFI_TEST_ASSERTION                    AssertionType;
+  EFI_STATUS                            Status;
+
+  EFI_TCG2_EVENT_ALGORITHM_BITMAP ActivePcrBanks;
+  Status = TCG2->GetActivePcrBanks (
+                           TCG2,
+                           &ActivePcrBanks);
+
+  // Ensure GetActivePcrBanks returns EFI_SUCCESS
+  if (Status == EFI_SUCCESS) {
+    AssertionType = EFI_TEST_ASSERTION_PASSED;
+  } else {
+    StandardLib->RecordMessage (
+                     StandardLib,
+                     EFI_VERBOSE_LEVEL_DEFAULT,
+                     L"\r\nTCG2 Protocol GetActivePcrBanks Test: GetActivePcrBanks should return EFI_SUCCESS",
+                     ActivePcrBanks
+                     );
+
+    AssertionType = EFI_TEST_ASSERTION_FAILED;
+  }
+
+  EFI_TCG2_EVENT_ALGORITHM_BITMAP BitMapAlgos =  EFI_TCG2_BOOT_HASH_ALG_SHA256 | EFI_TCG2_BOOT_HASH_ALG_SHA384 | EFI_TCG2_BOOT_HASH_ALG_SHA512;
+
+  // Ensure ActivePcrBanks has SHA256/384/512 in its Bitmap
+  if (!(ActivePcrBanks & BitMapAlgos)) {
+    StandardLib->RecordMessage (
+                     StandardLib,
+                     EFI_VERBOSE_LEVEL_DEFAULT,
+                     L"\r\nTCG2 Protocol GetActivePcrBanks Test: GetActiVePcrBanks should have SHA256/384/512 Algorithm in its Bitmap. ActivePcrBanks = %x",
+                     ActivePcrBanks
+                     );
+
+    AssertionType = EFI_TEST_ASSERTION_FAILED;
+  }
+
+  StandardLib->RecordAssertion (
+                 StandardLib,
+                 AssertionType,
+                 gTcg2ConformanceTestAssertionGuid005,
+                 L"TCG2_PROTOCOL.GetActivePcrBanks - GetActivePcrBanks should return with EFI_SUCCESS and have SHA256/384/512 Algoritms in its Bitmap",
+                 L"%a:%d: Status - %r",
+                 __FILE__,
+                 (UINTN)__LINE__,
+                 Status
+                 );
+
+  return EFI_SUCCESS;
+}

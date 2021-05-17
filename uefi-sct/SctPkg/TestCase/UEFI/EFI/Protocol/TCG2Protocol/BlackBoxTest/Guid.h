@@ -41,3 +41,13 @@ extern EFI_GUID gTcg2ConformanceTestAssertionGuid002;
 
 extern EFI_GUID gTcg2ConformanceTestAssertionGuid003;
 
+#define EFI_TEST_TCG2CONFORMANCE_ASSERTION_004_GUID \
+{ 0x7a1e79a3, 0x4064, 0x4372, {0xbb, 0x64, 0x55, 0xb8, 0xf2, 0xa5, 0xa3, 0x26 }}
+
+extern EFI_GUID gTcg2ConformanceTestAssertionGuid004;
+
+#define EFI_TEST_TCG2CONFORMANCE_ASSERTION_005_GUID \
+{ 0xb0e717c4, 0xb1e2, 0x49f7, {0xb2, 0xd7, 0x60, 0x58, 0x97, 0x7d, 0x09, 0x2c }}
+
+extern EFI_GUID gTcg2ConformanceTestAssertionGuid005;
+
