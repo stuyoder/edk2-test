@@ -94,12 +94,37 @@ CopyDependency()
     ls -h $ProcessorType/$1_*.ini   >> temp.txt 2>NUL
     ls -h $ProcessorType/$1_*.cmp   >> temp.txt 2>NUL
     ls -h $ProcessorType/$1_*.ucmp  >> temp.txt 2>NUL
+    ls -h $ProcessorType/$1_*.der  >> temp.txt 2>NUL
 
     while read line 
       do 
         CopyDependencyFile $1 $line
       done < temp.txt
     rm -f temp.txt >NUL
+}
+
+# *********************************************
+# sign .efi executables for Secure Boot
+# *********************************************
+
+SecureBootSign()
+{
+for f in $1/*.efi
+do
+        echo "sbsign --key $ProcessorType/SecureBoot_TestDB1.key --cert $ProcessorType/SecureBoot_TestDB1.crt $f --output $f"
+        sbsign --key $ProcessorType/SecureBoot_TestDB1.key --cert $ProcessorType/SecureBoot_TestDB1.crt $f --output $f
+done
+
+}
+
+SecureBootSignDependency()
+{
+for f in $Framework/Dependency/$1BBTest/*.efi
+do
+        echo "sbsign --key $ProcessorType/SecureBoot_TestDB1.key --cert $ProcessorType/SecureBoot_TestDB1.crt $f --output $f"
+        sbsign --key $ProcessorType/SecureBoot_TestDB1.key --cert $ProcessorType/SecureBoot_TestDB1.crt $f --output $f
+done
+
 }
 
 # *********************************************
@@ -268,6 +293,27 @@ then
     CopyDependency PciRootBridgeIo
     CopyDependency PxeBaseCode
     CopyDependency ConfigKeywordHandler
+    CopyDependency SecureBoot
+
+    # *********************************************
+    # Sign the .efi executables for use with Secure Boot
+    # *********************************************
+
+    SecureBootSign $Framework
+    SecureBootSign $Framework/Support
+    SecureBootSign SctPackage$ProcessorType
+    SecureBootSign $Framework/SCRT
+    SecureBootSign $Framework/Test
+    SecureBootSign $Framework/Ents/Support
+    SecureBootSign $Framework/Ents/Test
+
+    SecureBootSignDependency LoadedImage
+    SecureBootSignDependency ImageServices
+    SecureBootSignDependency ProtocolHandlerServices
+    SecureBootSignDependency ConfigKeywordHandler
+    SecureBootSignDependency Ebc
+    SecureBootSignDependency PciIo
+
 fi
 
 # *********************************************
