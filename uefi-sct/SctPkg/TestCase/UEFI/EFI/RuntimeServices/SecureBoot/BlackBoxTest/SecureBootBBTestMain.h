@@ -47,9 +47,20 @@ Abstract:
 
 #define MAX_BUFFER_SIZE                       256
 
+#define VARIABLE_ATTRIBUTES_TEST_GUID \
+  { 0xE39747C4, 0x22D0, 0x4D52, {0x9C, 0x15, 0x3C, 0x4E, 0xFA, 0x80, 0xE6, 0xC8 }}
+
+
 //
 // Prototypes
 //
+EFI_STATUS
+VariableAttributesTest(
+  IN EFI_BB_TEST_PROTOCOL       *This,
+  IN VOID                       *ClientInterface,
+  IN EFI_TEST_LEVEL             TestLevel,
+  IN EFI_HANDLE                 SupportHandle
+  );
 
 //
 // Support functions

@@ -49,6 +49,16 @@ EFI_GUID gSupportProtocolGuid[] = {
 };
 
 EFI_BB_TEST_ENTRY_FIELD gBBTestEntryField[] = {
+  {
+    VARIABLE_ATTRIBUTES_TEST_GUID,
+    L"VariableAttributes",
+    L"Verifies Secure Boot variable attributes.",
+    EFI_TEST_LEVEL_MINIMAL,
+    gSupportProtocolGuid,
+    EFI_TEST_CASE_AUTO,
+    VariableAttributesTest 
+  },
+
   0
 };
 

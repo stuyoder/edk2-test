@@ -249,6 +249,8 @@ then
     cp $ProcessorType/UFSDeviceConfigBBTest.efi                $Framework/Test/ > NUL
     cp $ProcessorType/ResetNotificationBBTest.efi              $Framework/Test/ > NUL
 
+    cp $ProcessorType/SecureBootBBTest.efi                     $Framework/Test/ > NUL
+
     # *********************************************
     # Copy ENTS binary
     # *********************************************
