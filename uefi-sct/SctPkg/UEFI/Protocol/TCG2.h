@@ -94,6 +94,7 @@ typedef UINT32 TCG_PCRINDEX;
 
 typedef UINT32 TCG_EVENTTYPE;
 
+#pragma pack(1)
 typedef struct tdEFI_TCG2_EVENT_HEADER {
   UINT32 HeaderSize;
   UINT16 HeaderVersion;
@@ -106,6 +107,7 @@ typedef struct tdEFI_TCG2_EVENT {
   EFI_TCG2_EVENT_HEADER Header;
   UINT8 Event[];
 } EFI_TCG2_EVENT;
+#pragma pack()
 
 typedef
 EFI_STATUS
