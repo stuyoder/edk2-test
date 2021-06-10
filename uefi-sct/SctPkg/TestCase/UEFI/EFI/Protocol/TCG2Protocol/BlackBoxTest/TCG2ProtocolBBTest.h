@@ -47,6 +47,8 @@ extern EFI_HANDLE   mImageHandle;
 
 #define EV_POST_CODE 0x01
 
+#define EV_NO_ACTION 0x03
+
 #define EFI_TCG2_EXTEND_ONLY 0x0000000000000001
 
 #define PE_COFF_IMAGE 0x0000000000000010
@@ -95,6 +97,18 @@ BBTestHashLogExtendEventConformanceTestCheckpoint1 (
 
 EFI_STATUS
 BBTestHashLogExtendEventConformanceTestCheckpoint2 (
+  IN EFI_STANDARD_TEST_LIBRARY_PROTOCOL    *StandardLib,
+  IN EFI_TCG2_PROTOCOL                     *TCG2
+  );
+
+EFI_STATUS
+BBTestHashLogExtendEventConformanceTestCheckpoint3 (
+  IN EFI_STANDARD_TEST_LIBRARY_PROTOCOL    *StandardLib,
+  IN EFI_TCG2_PROTOCOL                     *TCG2
+  );
+
+EFI_STATUS
+BBTestHashLogExtendEventConformanceTestCheckpoint4 (
   IN EFI_STANDARD_TEST_LIBRARY_PROTOCOL    *StandardLib,
   IN EFI_TCG2_PROTOCOL                     *TCG2
   );

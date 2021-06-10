@@ -169,6 +169,12 @@ BBTestHashLogExtendEventConformanceTest (
   //Test with correct size field
   BBTestHashLogExtendEventConformanceTestCheckpoint2 (StandardLib, TCG2);
 
+  // Test GetEventLog using invalid EventLog Format
+  BBTestHashLogExtendEventConformanceTestCheckpoint3 (StandardLib, TCG2);
+
+  // Test GetEventLog using valid EventLog Format
+  BBTestHashLogExtendEventConformanceTestCheckpoint4 (StandardLib, TCG2);
+
   return EFI_SUCCESS;
 }
 
@@ -699,5 +705,197 @@ BBTestHashLogExtendEventConformanceTestCheckpoint2 (
 
   gtBS->FreePool (EfiTcgEvent);
   
+  return EFI_SUCCESS;
+}
+
+#define EFI_TCG2_INVALID_EVENT_LOG_FORMAT 0x20
+EFI_STATUS
+BBTestHashLogExtendEventConformanceTestCheckpoint3 (
+  IN EFI_STANDARD_TEST_LIBRARY_PROTOCOL    *StandardLib,
+  IN EFI_TCG2_PROTOCOL                     *TCG2
+  )
+{
+  EFI_TEST_ASSERTION                    AssertionType;
+  EFI_STATUS                            Status;
+  EFI_TCG2_EVENT_LOG_FORMAT             EventLogFormat;
+  EFI_PHYSICAL_ADDRESS                  *EventLogLocation;
+  EFI_PHYSICAL_ADDRESS                  *EventLogLastEntry;
+  BOOLEAN                               *EventLogTruncated;
+
+  // Ensure Get EventLog returns Invalid Parameter when passed invalid format
+  EventLogFormat = EFI_TCG2_INVALID_EVENT_LOG_FORMAT;
+
+  Status = TCG2->GetEventLog (
+                           TCG2,
+                           EventLogFormat,
+                           EventLogLocation,
+                           EventLogLastEntry,
+                           EventLogTruncated);
+
+  if (EFI_INVALID_PARAMETER != Status) {
+    AssertionType = EFI_TEST_ASSERTION_FAILED;
+  } else {
+    AssertionType = EFI_TEST_ASSERTION_PASSED;
+  }
+
+  StandardLib->RecordAssertion (
+                 StandardLib,
+                 AssertionType,
+                 gTcg2ConformanceTestAssertionGuid010,
+                 L"TCG2_PROTOCOL.GetEventLog - GetEventLog() should return EFI_INVALID_PARAMETER when passed in invalid EventLog Format",
+                 L"%a:%d: Status - %r",
+                 __FILE__,
+                 (UINTN)__LINE__,
+                 Status
+                 );
+
+  return EFI_SUCCESS;
+}
+
+EFI_STATUS
+BBTestHashLogExtendEventConformanceTestCheckpoint4 (
+  IN EFI_STANDARD_TEST_LIBRARY_PROTOCOL    *StandardLib,
+  IN EFI_TCG2_PROTOCOL                     *TCG2
+  )
+{
+  EFI_TEST_ASSERTION                    AssertionType;
+  EFI_STATUS                            Status;
+  EFI_TCG2_EVENT_LOG_FORMAT             EventLogFormat;
+  EFI_PHYSICAL_ADDRESS                  EventLogLocation;
+  EFI_PHYSICAL_ADDRESS                  EventLogLastEntry;
+  BOOLEAN                               EventLogTruncated;
+  TCG_PCR_EVENT                         *EventLogHeader;
+  TCG_EfiSpecIDEventStruct              *EventLogHeaderSpecEvent;
+  TCG_PCR_EVENT2                        *LastEvent;
+  UINT8 *data = "Spec ID Event03\0\0";
+
+  EventLogFormat = EFI_TCG2_EVENT_LOG_FORMAT_TCG_2;
+
+  // Call GetEventLog with valid EventLogFormat
+  Status = TCG2->GetEventLog (
+                           TCG2,
+                           EventLogFormat,
+                           &EventLogLocation,
+                           &EventLogLastEntry,
+                           &EventLogTruncated);
+
+
+  AssertionType = EFI_TEST_ASSERTION_PASSED;
+
+  // Verify GetEventLog returns EFI_SUCCESS
+  if (Status != EFI_SUCCESS) {
+    StandardLib->RecordMessage (
+                     StandardLib,
+                     EFI_VERBOSE_LEVEL_DEFAULT,
+                     L"\r\nTCG2 Protocol GetEventLog Test: GetEventLog should return EFI_SUCCESS with valid EventLogFormat, Status = %r",
+                     Status
+                     );
+
+    AssertionType = EFI_TEST_ASSERTION_FAILED;
+
+  }
+
+
+  StandardLib->RecordAssertion (
+                 StandardLib,
+                 AssertionType,
+                 gTcg2ConformanceTestAssertionGuid011,
+                 L"TCG2_PROTOCOL.GetEventLog - GetEventLog() should return EFI_SUCCESS",
+                 L"%a:%d: Status - %r",
+                 __FILE__,
+                 (UINTN)__LINE__,
+                 Status
+                 );
+
+  // If GetEventLog doesn't return EFI_SUCCESS abort test
+  if (Status != EFI_SUCCESS) {
+    return Status;
+  }
+
+  EventLogHeader = (TCG_PCR_EVENT *) EventLogLocation;
+  EventLogHeaderSpecEvent = (TCG_EfiSpecIDEventStruct *) EventLogHeader->Event;
+
+  AssertionType = EFI_TEST_ASSERTION_PASSED;
+
+  // Verify EventLogHeader PCR index = 0
+  if (EventLogHeader->PCRIndex != 0) {
+    StandardLib->RecordMessage (
+                     StandardLib,
+                     EFI_VERBOSE_LEVEL_DEFAULT,
+                     L"\r\nTCG2 Protocol GetEventLog Test: EventLogHeader should have PCR index = 0"
+                     );
+
+    AssertionType = EFI_TEST_ASSERTION_FAILED;
+  }
+
+  // Verify EventLogHeader event type = EV_NO_ACTION
+  if (EventLogHeader->EventType != EV_NO_ACTION) {
+    StandardLib->RecordMessage (
+                     StandardLib,
+                     EFI_VERBOSE_LEVEL_DEFAULT,
+                     L"\r\nTCG2 Protocol GetEventLog Test: EventLogHeader should be EventType = EV_NO_ACTION"
+                     );
+
+    AssertionType = EFI_TEST_ASSERTION_FAILED;
+  }
+
+  Status = SctStrCmp(EventLogHeaderSpecEvent->signature, data);
+  // Verify EventLog Signature
+  if (Status != EFI_SUCCESS) {
+    StandardLib->RecordMessage (
+                     StandardLib,
+                     EFI_VERBOSE_LEVEL_DEFAULT,
+                     L"\r\nTCG2 Protocol GetEventLog Test: EventLogHeader Signature did not match \'Spec ID Event03\'"
+                     );
+
+    AssertionType = EFI_TEST_ASSERTION_FAILED;
+  }
+
+  StandardLib->RecordAssertion (
+                 StandardLib,
+                 AssertionType,
+                 gTcg2ConformanceTestAssertionGuid012,
+                 L"TCG2_PROTOCOL.GetEventLog - GetEventLog() should return correct EventLogHeader",
+                 L"%a:%d: Status - %r",
+                 __FILE__,
+                 (UINTN)__LINE__,
+                 Status
+                 );
+
+  LastEvent = (TCG_PCR_EVENT2 *) EventLogLastEntry;
+
+  // Verify Last Event PCR = 16
+  if (LastEvent->PCRIndex != 16) {
+    StandardLib->RecordMessage (
+                     StandardLib,
+                     EFI_VERBOSE_LEVEL_DEFAULT,
+                     L"\r\nTCG2 Protocol GetEventLog Test: PCR Index of Last event should be 16"
+                     );
+
+    AssertionType = EFI_TEST_ASSERTION_FAILED;
+  }
+
+  // Verify last event type = EV_POST_CODE
+  if (LastEvent->EventType != EV_POST_CODE) {
+    StandardLib->RecordMessage (
+                     StandardLib,
+                     EFI_VERBOSE_LEVEL_DEFAULT,
+                     L"\r\nTCG2 Protocol GetEventLog Test: PCR Index of last event should be type EV_POST_CODE"
+                     );
+
+    AssertionType = EFI_TEST_ASSERTION_FAILED;
+  }
+
+  StandardLib->RecordAssertion (
+                 StandardLib,
+                 AssertionType,
+                 gTcg2ConformanceTestAssertionGuid013,
+                 L"TCG2_PROTOCOL.GetEventLog - GetEventLog() should record Event from Checkpoint2 as last EventLogEntry",
+                 L"%a:%d: Status - %r",
+                 __FILE__,
+                 (UINTN)__LINE__,
+                 Status
+                 );
+
   return EFI_SUCCESS;
 }
