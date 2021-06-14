@@ -95,6 +95,7 @@ CopyDependency()
     ls -h $ProcessorType/$1_*.cmp   >> temp.txt 2>NUL
     ls -h $ProcessorType/$1_*.ucmp  >> temp.txt 2>NUL
     ls -h $ProcessorType/$1_*.der  >> temp.txt 2>NUL
+    ls -h $ProcessorType/$1_*.auth  >> temp.txt 2>NUL
 
     while read line 
       do 
