@@ -58,6 +58,15 @@ EFI_BB_TEST_ENTRY_FIELD gBBTestEntryField[] = {
     EFI_TEST_CASE_AUTO,
     VariableAttributesTest 
   },
+  {
+    VARIABLE_UPDATES_TEST_GUID,
+    L"VariableUpdates",
+    L"Verifies Secure Boot variable updates.",
+    EFI_TEST_LEVEL_MINIMAL,
+    gSupportProtocolGuid,
+    EFI_TEST_CASE_AUTO,
+    VariableUpdatesTest
+  },
 
   0
 };
