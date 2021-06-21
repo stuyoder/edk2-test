@@ -178,6 +178,50 @@ BBTestHashLogExtendEventConformanceTest (
   return EFI_SUCCESS;
 }
 
+/**
+ *  @brief Entrypoint for SubmitCommand() Function Test.
+ *         1 checkpoint will be tested.
+ *  @param This a pointer of EFI_BB_TEST_PROTOCOL
+ *  @param ClientInterface A pointer to the interface array under test
+ *  @param TestLevel Test "thoroughness" control
+ *  @param SupportHandle A handle containing protocols required
+ *  @return EFI_SUCCESS
+ *  @return EFI_NOT_FOUND
+ */
+
+EFI_STATUS
+BBTestSubmitCommandConformanceTest (
+  IN EFI_BB_TEST_PROTOCOL       *This,
+  IN VOID                       *ClientInterface,
+  IN EFI_TEST_LEVEL             TestLevel,
+  IN EFI_HANDLE                 SupportHandle
+  )
+{
+  EFI_STANDARD_TEST_LIBRARY_PROTOCOL    *StandardLib;
+  EFI_STATUS                            Status;
+  EFI_TCG2_PROTOCOL                     *TCG2;
+  //
+  // init
+  //
+  TCG2 = (EFI_TCG2_PROTOCOL*)ClientInterface;
+
+  // Get the Standard Library Interface
+  //
+  Status = gtBS->HandleProtocol (
+                   SupportHandle,
+                   &gEfiStandardTestLibraryGuid,
+                   (VOID **) &StandardLib
+                   );
+  if (EFI_ERROR(Status)) {
+    return Status;
+  }
+
+  // Test GetRandom TPM Command
+  BBTestSubmitCommandConformanceTestCheckpoint1 (StandardLib, TCG2);
+
+  return EFI_SUCCESS;
+}
+
 EFI_STATUS
 BBTestGetCapabilityConformanceTestCheckpoint1 (
   IN EFI_STANDARD_TEST_LIBRARY_PROTOCOL    *StandardLib,
@@ -795,7 +839,6 @@ BBTestHashLogExtendEventConformanceTestCheckpoint4 (
 
   }
 
-
   StandardLib->RecordAssertion (
                  StandardLib,
                  AssertionType,
@@ -891,6 +934,137 @@ BBTestHashLogExtendEventConformanceTestCheckpoint4 (
                  AssertionType,
                  gTcg2ConformanceTestAssertionGuid013,
                  L"TCG2_PROTOCOL.GetEventLog - GetEventLog() should record Event from Checkpoint2 as last EventLogEntry",
+                 L"%a:%d: Status - %r",
+                 __FILE__,
+                 (UINTN)__LINE__,
+                 Status
+                 );
+
+  return EFI_SUCCESS;
+}
+
+EFI_STATUS
+BBTestSubmitCommandConformanceTestCheckpoint1 (
+  IN EFI_STANDARD_TEST_LIBRARY_PROTOCOL    *StandardLib,
+  IN EFI_TCG2_PROTOCOL                     *TCG2
+  )
+{
+  EFI_TEST_ASSERTION                    AssertionType;
+  EFI_STATUS                            Status;
+  GET_RANDOM_RESPONSE                   CommandResponse;
+  GET_RANDOM_COMMAND                    CommandInput;
+  int IsNonZero = 0;
+
+  CommandInput.Tag = SctSwapBytes16(ST_NO_SESSIONS);
+  CommandInput.CommandSize = SctSwapBytes32(sizeof(GET_RANDOM_COMMAND));
+  CommandInput.CommandCode = SctSwapBytes32(TPM_CC_GetRandom);
+  CommandInput.BytesRequested = SctSwapBytes16(8);
+
+  // zero out randomBytes to ensure SubmitCommand returns random bytes
+  SctZeroMem(&CommandResponse, sizeof(GET_RANDOM_RESPONSE));
+
+  Status = TCG2->SubmitCommand (
+                           TCG2,
+                           sizeof(GET_RANDOM_COMMAND),
+                           &CommandInput,
+                           sizeof(GET_RANDOM_RESPONSE),
+                           &CommandResponse);
+
+  AssertionType = EFI_TEST_ASSERTION_PASSED;
+
+  // Verify SubmitCommand returns EFI_SUCCESS
+  if (Status != EFI_SUCCESS) {
+    StandardLib->RecordMessage (
+                     StandardLib,
+                     EFI_VERBOSE_LEVEL_DEFAULT,
+                     L"\r\nTCG2 Protocol SubmitCommand Test: SubmitCommand should return EFI_SUCCESS, Status = %r",
+                     Status
+                     );
+
+    AssertionType = EFI_TEST_ASSERTION_FAILED;
+  }
+
+  StandardLib->RecordAssertion (
+                 StandardLib,
+                 AssertionType,
+                 gTcg2ConformanceTestAssertionGuid014,
+                 L"TCG2_PROTOCOL.SubmitCommand - SubmitCommand() should return EFI_SUCCESS",
+                 L"%a:%d: Status - %r",
+                 __FILE__,
+                 (UINTN)__LINE__,
+                 Status
+                 );
+
+  AssertionType = EFI_TEST_ASSERTION_PASSED;
+
+  // Verify SubmitCommand returns correct Response Tag
+  if (SctSwapBytes16(CommandResponse.Tag) != ST_NO_SESSIONS) {
+    StandardLib->RecordMessage (
+                     StandardLib,
+                     EFI_VERBOSE_LEVEL_DEFAULT,
+                     L"\r\nTCG2 Protocol SubmitCommand Test: SubmitCommand should return ST_NO_SESSIONS response Tag"
+                     );
+
+    AssertionType = EFI_TEST_ASSERTION_FAILED;
+  }
+
+  if (SctSwapBytes32(CommandResponse.ResponseCode) != TPM_RC_SUCCESS) {
+    StandardLib->RecordMessage (
+                     StandardLib,
+                     EFI_VERBOSE_LEVEL_DEFAULT,
+                     L"\r\nTCG2 Protocol SubmitCommand Test: SubmitCommand should return Correct ResponseCode, ResponseCode = %x",
+                     SctSwapBytes32(CommandResponse.ResponseCode)
+                     );
+
+    AssertionType = EFI_TEST_ASSERTION_FAILED;
+  }
+
+  if (SctSwapBytes32(CommandResponse.ResponseSize) != sizeof(GET_RANDOM_RESPONSE)) {
+    StandardLib->RecordMessage (
+                     StandardLib,
+                     EFI_VERBOSE_LEVEL_DEFAULT,
+                     L"\r\nTCG2 Protocol SubmitCommand Test: SubmitCommand should return Correct ResponseSize, Size = %x",
+                     SctSwapBytes32(CommandResponse.ResponseSize)
+                     );
+
+    AssertionType = EFI_TEST_ASSERTION_FAILED;
+  }
+
+  // Check that number of random bytes returned equals amount requested
+  if (SctSwapBytes16(CommandResponse.randomBytes.size) != 8) {
+    StandardLib->RecordMessage (
+                     StandardLib,
+                     EFI_VERBOSE_LEVEL_DEFAULT,
+                     L"\r\nTCG2 Protocol SubmitCommand Test: SubmitCommand should return correct amount of random bytes, Size = %x",
+                     SctSwapBytes16(CommandResponse.randomBytes.size)
+                     );
+
+    AssertionType = EFI_TEST_ASSERTION_FAILED;
+  }
+
+  // If random bytes are returned at least one should be non-zero
+  for (int i = 0; i < 8; i++) {
+    if (CommandResponse.randomBytes.digest[i] != 0) {
+      IsNonZero = 1;
+    }
+  }
+
+  if (!IsNonZero) {
+    StandardLib->RecordMessage (
+                     StandardLib,
+                     EFI_VERBOSE_LEVEL_DEFAULT,
+                     L"\r\nTCG2 Protocol SubmitCommand Test: SubmitCommand should return RandomBytes",
+                     Status
+                     );
+
+    AssertionType = EFI_TEST_ASSERTION_FAILED;
+  }
+
+  StandardLib->RecordAssertion (
+                 StandardLib,
+                 AssertionType,
+                 gTcg2ConformanceTestAssertionGuid015,
+                 L"TCG2_PROTOCOL.SubmitCommand - SubmitCommand() should return EFI_SUCCESS",
                  L"%a:%d: Status - %r",
                  __FILE__,
                  (UINTN)__LINE__,
