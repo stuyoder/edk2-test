@@ -60,6 +60,14 @@ VariableUpdatesTestCheckpoint1 (
   );
 
 EFI_STATUS
+VariableUpdatesTestCheckpoint2 (
+  IN EFI_RUNTIME_SERVICES                 *RT,
+  IN EFI_STANDARD_TEST_LIBRARY_PROTOCOL   *StandardLib,
+  IN EFI_TEST_LOGGING_LIBRARY_PROTOCOL    *LoggingLib,
+  EFI_TEST_PROFILE_LIBRARY_PROTOCOL   *ProfileLib
+  );
+
+EFI_STATUS
 VariableUpdatesCleanup (
   IN EFI_RUNTIME_SERVICES                 *RT,
   IN EFI_STANDARD_TEST_LIBRARY_PROTOCOL   *StandardLib,
@@ -119,6 +127,10 @@ VariableUpdatesTest(
   }
 
   Status = VariableUpdatesTestCheckpoint1 (RT, StandardLib, LoggingLib, ProfileLib);
+  if (EFI_ERROR(Status)) {
+    return Status;
+  }
+  Status = VariableUpdatesTestCheckpoint2 (RT, StandardLib, LoggingLib, ProfileLib);
   if (EFI_ERROR(Status)) {
     return Status;
   }
@@ -325,6 +337,207 @@ VariableUpdatesTestCheckpoint1 (
                  );
 
   gtBS->FreePool (Buffer);
+
+  //
+  // Trace ...
+  //
+  if (LoggingLib != NULL) {
+    LoggingLib->ExitFunction (
+                  LoggingLib,
+                  L"VariableUpdatesTest",
+                  L"UEFI spec, 8.2, 32.3, 32.4.1"
+                  );
+  }
+
+  //
+  // Done
+  //
+  return EFI_SUCCESS;
+}
+
+/**
+ *  Verify that updates to db are signed
+ *
+ *  @param StandardLib    A pointer to EFI_STANDARD_TEST_LIBRARY_PROTOCOL
+ *                        instance.
+ *  @param LoggingLib     A pointer to EFI_TEST_LOGGING_LIBRARY_PROTOCOL
+ *                        instance.
+ *  @param ProfileLib     A pointer to EFI_TEST_PROFILE_LIBRARY_PROTOCOL
+ *                        instance.
+ *  @return EFI_SUCCESS   Successfully.
+ *  @return Other value   Something failed.
+ */
+EFI_STATUS
+VariableUpdatesTestCheckpoint2 (
+  IN EFI_RUNTIME_SERVICES                 *RT,
+  IN EFI_STANDARD_TEST_LIBRARY_PROTOCOL   *StandardLib,
+  IN EFI_TEST_LOGGING_LIBRARY_PROTOCOL    *LoggingLib,
+  EFI_TEST_PROFILE_LIBRARY_PROTOCOL   *ProfileLib
+  )
+{
+  EFI_STATUS            Status;
+  EFI_TEST_ASSERTION    Result;
+  UINTN                 DataSize;
+  UINT8                 Data[MAX_BUFFER_SIZE];
+  UINT32                Attributes;
+  EFI_FILE_HANDLE       KeyFHandle;
+  UINT32                KeyFileSize;
+  CHAR16                *FileName;
+  VOID                  *Buffer;
+  UINTN                 BufferSize;
+  UINT32                DBAttributes;
+
+  //
+  // Trace ...
+  //
+  if (LoggingLib != NULL) {
+    LoggingLib->EnterFunction (
+                  LoggingLib,
+                  L"VariableUpdatesTest",
+                  L"UEFI spec, 8.2, 32.3, 32.4.1"
+                  );
+  }
+
+  // get db variable attributes
+  DataSize = 0;
+  Attributes = 0;
+  Status = RT->GetVariable (
+                 L"db",                          // VariableName
+                 &gEfiImageSecurityDatabaseGuid, // VendorGuid
+                 &DBAttributes,                    // Attributes
+                 &DataSize,                      // DataSize
+                 NULL                            // Data
+                 );
+
+
+  //
+  // Test db update with unsigned data
+  //
+
+  FileName = L"TestImage1.bin";
+  //
+  // read the key data into memory.
+  //
+  Status = OpenFileAndGetSize (
+             FileName,
+             &KeyFHandle,
+             &KeyFileSize
+             );
+
+  if (EFI_ERROR(Status)) {
+    return EFI_NOT_FOUND;
+  }
+
+  Buffer = SctAllocatePool (KeyFileSize);
+
+  if (Buffer == NULL) {
+    KeyFHandle->Close (KeyFHandle);
+    return EFI_OUT_OF_RESOURCES;
+  }
+
+  BufferSize = KeyFileSize;
+
+  Status = KeyFHandle->Read (
+                      KeyFHandle,
+                      &BufferSize,
+                      Buffer
+                      );
+
+  if (EFI_ERROR(Status)) {
+    KeyFHandle->Close (KeyFHandle);
+    gtBS->FreePool (Buffer);
+    return EFI_LOAD_ERROR;
+  }
+
+  Status = RT->SetVariable (
+                     L"db",                           // VariableName
+                     &gEfiImageSecurityDatabaseGuid,  // Vendor GUID
+                     DBAttributes,                   // Attributes
+                     BufferSize,                      // DataSize
+                     Buffer                           // Data
+                     );
+
+  if (Status == EFI_SECURITY_VIOLATION) {
+    Result = EFI_TEST_ASSERTION_PASSED;
+  } else {
+    Result = EFI_TEST_ASSERTION_FAILED;
+  }
+
+  StandardLib->RecordAssertion (
+                 StandardLib,
+                 Result,
+                 gSecureBootVariableUpdatesBbTestAssertionGuid003,
+                 L"SecureBoot - Verify unsigned db update",
+                 L"%a:%d:Status - %r",
+                 __FILE__,
+                 (UINTN)__LINE__,
+                 Status
+                 );
+
+  //
+  // Test db update with properly signed data
+  //
+
+  FileName = L"dbSigList1.auth";
+
+  //
+  //read the key file into memory.
+  //
+  Status = OpenFileAndGetSize (
+             FileName,
+             &KeyFHandle,
+             &KeyFileSize
+             );
+
+  if (EFI_ERROR(Status)) {
+    return EFI_NOT_FOUND;
+  }
+
+  Buffer = SctAllocatePool (KeyFileSize);
+
+  if (Buffer == NULL) {
+    KeyFHandle->Close (KeyFHandle);
+    return EFI_OUT_OF_RESOURCES;
+  }
+
+  BufferSize = KeyFileSize;
+
+  Status = KeyFHandle->Read (
+                      KeyFHandle,
+                      &BufferSize,
+                      Buffer
+                      );
+
+  if (EFI_ERROR(Status)) {
+    KeyFHandle->Close (KeyFHandle);
+    gtBS->FreePool (Buffer);
+    return EFI_LOAD_ERROR;
+  }
+
+  Status = RT->SetVariable (
+                     L"db",                    // VariableName
+                     &gEfiImageSecurityDatabaseGuid,  // Vendor GUID
+                     DBAttributes,            // Attributes
+                     BufferSize,                // DataSize
+                     Buffer                     // Data
+                     );
+
+  if (Status == EFI_SUCCESS) {
+    Result = EFI_TEST_ASSERTION_PASSED;
+  } else {
+    Result = EFI_TEST_ASSERTION_FAILED;
+  }
+
+  StandardLib->RecordAssertion (
+                 StandardLib,
+                 Result,
+                 gSecureBootVariableUpdatesBbTestAssertionGuid004,
+                 L"SecureBoot - Verify signed db update",
+                 L"%a:%d:Status - %r",
+                 __FILE__,
+                 (UINTN)__LINE__,
+                 Status
+                 );
 
   //
   // Trace ...

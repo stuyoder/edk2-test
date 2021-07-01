@@ -42,7 +42,7 @@ TEST_PK1_CRT=$(BIN_DIR)/SecureBoot_TestPK1.crt
 TEST_PK1_KEY=$(BIN_DIR)/SecureBoot_TestPK1.key
 endif
 
-all: $(TEST_KEYS) TestKEK2 KEKSigList1.auth TestImage1.bin NullKEK.auth NullDB.auth NullDBX.auth TestKEK1.auth TestDB1.auth TestDBX1.auth
+all: $(TEST_KEYS) TestKEK2 KEKSigList1.auth TestImage1.bin NullKEK.auth NullDB.auth NullDBX.auth TestKEK1.auth TestDB1.auth TestDBX1.auth SignCert1 dbSigList1.auth
 
 TestImage1.bin:
 	head -c 16K </dev/urandom > $(TARGET)_$(@)
@@ -65,6 +65,9 @@ TestDBX1:
 
 TestKEK2:
 	openssl req -x509 -sha256 -newkey rsa:2048 -subj /CN=ACS_TEST_KEK/ -keyout $(TARGET)_$(@).key -out $(TARGET)_$(@).crt -nodes -days 4000
+
+SignCert1:
+	openssl req -x509 -sha256 -newkey rsa:2048 -subj /CN=ACS_SignCert1/ -keyout $(TARGET)_$(@).key -out $(TARGET)_$(@).crt -nodes -days 4000
 
 KEKSigList1.auth: TestKEK2
 	cert-to-efi-sig-list $(TEST_KEK1_CRT) $(BIN_DIR)/SecureBoot_TestKEK1.esl
@@ -95,6 +98,10 @@ TestDB1.auth:
 TestDBX1.auth:
 	cert-to-efi-sig-list $(TEST_DBX1_CRT) $(BIN_DIR)/SecureBoot_TestDBX1.esl
 	sign-efi-sig-list -t $(PAST_DATE) -c $(TEST_PK1_CRT) -k $(TEST_PK1_KEY) dbx $(BIN_DIR)/SecureBoot_TestDBX1.esl $(BIN_DIR)/SecureBoot_TestDBX1.auth
+
+dbSigList1.auth: SignCert1
+	cert-to-efi-sig-list $(BIN_DIR)/SecureBoot_SignCert1.crt $(BIN_DIR)/SecureBoot_TestDB1.esl
+	sign-efi-sig-list -c $(TEST_PK1_CRT) -k $(TEST_PK1_KEY) db $(BIN_DIR)/SecureBoot_TestDB1.esl $(BIN_DIR)/SecureBoot_DBSigList1.auth
 
 clean:
 	$(RM) $(BIN_DIR)/$(TARGET)_*.key
