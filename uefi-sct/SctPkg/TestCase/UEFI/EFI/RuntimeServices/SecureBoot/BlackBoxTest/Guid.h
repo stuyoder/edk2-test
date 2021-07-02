@@ -89,3 +89,8 @@ extern EFI_GUID gSecureBootVariableUpdatesBbTestAssertionGuid003;
 { 0x2f1014eb, 0x4e84, 0x4293, {0xba, 0xd3, 0x53, 0x03, 0x5f, 0x9e, 0xae, 0xb4 }}
 
 extern EFI_GUID gSecureBootVariableUpdatesBbTestAssertionGuid004;
+
+#define EFI_TEST_SECUREBOOTVARIABLEUPDATES_ASSERTION_005_GUID \
+{ 0x021ef001, 0x0cb2, 0x45d4, {0x85, 0x29, 0xd4, 0xf0, 0xe8, 0x3a, 0xdd, 0x1f }}
+
+extern EFI_GUID gSecureBootVariableUpdatesBbTestAssertionGuid005;

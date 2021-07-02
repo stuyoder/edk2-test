@@ -540,6 +540,73 @@ VariableUpdatesTestCheckpoint2 (
                  );
 
   //
+  // Test db update with data signed by KEK
+  //
+
+  FileName = L"dbSigList2.auth";
+
+  //
+  //read the key file into memory.
+  //
+  Status = OpenFileAndGetSize (
+             FileName,
+             &KeyFHandle,
+             &KeyFileSize
+             );
+
+  if (EFI_ERROR(Status)) {
+    return EFI_NOT_FOUND;
+  }
+
+  Buffer = SctAllocatePool (KeyFileSize);
+
+  if (Buffer == NULL) {
+    KeyFHandle->Close (KeyFHandle);
+    return EFI_OUT_OF_RESOURCES;
+  }
+
+  BufferSize = KeyFileSize;
+
+  Status = KeyFHandle->Read (
+                      KeyFHandle,
+                      &BufferSize,
+                      Buffer
+                      );
+
+  if (EFI_ERROR(Status)) {
+    KeyFHandle->Close (KeyFHandle);
+    gtBS->FreePool (Buffer);
+    return EFI_LOAD_ERROR;
+  }
+
+  Status = RT->SetVariable (
+                     L"db",                    // VariableName
+                     &gEfiImageSecurityDatabaseGuid,  // Vendor GUID
+                     DBAttributes,            // Attributes
+                     BufferSize,                // DataSize
+                     Buffer                     // Data
+                     );
+
+  if (Status == EFI_SUCCESS) {
+    Result = EFI_TEST_ASSERTION_PASSED;
+  } else {
+    Result = EFI_TEST_ASSERTION_FAILED;
+  }
+
+  StandardLib->RecordAssertion (
+                 StandardLib,
+                 Result,
+                 gSecureBootVariableUpdatesBbTestAssertionGuid005,
+                 L"SecureBoot - Verify signed db update",
+                 L"%a:%d:Status - %r",
+                 __FILE__,
+                 (UINTN)__LINE__,
+                 Status
+                 );
+
+
+
+  //
   // Trace ...
   //
   if (LoggingLib != NULL) {
