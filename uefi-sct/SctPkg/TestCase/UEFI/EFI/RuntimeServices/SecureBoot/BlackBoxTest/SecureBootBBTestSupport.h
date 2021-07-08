@@ -40,6 +40,7 @@ Abstract:
 extern EFI_DEVICE_PATH_PROTOCOL        *gDevicePath;
 extern CHAR16                          *gFilePath;
 extern EFI_HANDLE                      gDeviceHandle;
+extern EFI_HANDLE                      mImageHandle;
 
 //
 // support function protype

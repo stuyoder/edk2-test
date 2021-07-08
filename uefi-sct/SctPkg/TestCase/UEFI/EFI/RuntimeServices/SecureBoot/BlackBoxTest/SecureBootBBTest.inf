@@ -39,6 +39,7 @@
   SecureBootBBTestSupport.c
   VariableAttributesBBTest.c
   VariableUpdatesBBTest.c
+  ImageLoadingBBTest.c
   Guid.h
   Guid.c
 

@@ -53,6 +53,9 @@ Abstract:
 #define VARIABLE_UPDATES_TEST_GUID \
   { 0x495CB6D7, 0x0817, 0x4015, {0xA4, 0x79, 0x0D, 0xB4, 0xC2, 0x30, 0x86, 0x26 }}
 
+#define IMAGE_LOADING_TEST_GUID \
+  { 0xBA4A8DD9, 0x2D6A, 0x43A6, {0x96, 0xCF, 0x79, 0x47, 0x89, 0x2B, 0x73, 0x59 }}
+
 //
 // Prototypes
 //
@@ -66,6 +69,14 @@ VariableAttributesTest(
 
 EFI_STATUS
 VariableUpdatesTest(
+  IN EFI_BB_TEST_PROTOCOL       *This,
+  IN VOID                       *ClientInterface,
+  IN EFI_TEST_LEVEL             TestLevel,
+  IN EFI_HANDLE                 SupportHandle
+  );
+
+EFI_STATUS
+ImageLoadingTest(
   IN EFI_BB_TEST_PROTOCOL       *This,
   IN VOID                       *ClientInterface,
   IN EFI_TEST_LEVEL             TestLevel,

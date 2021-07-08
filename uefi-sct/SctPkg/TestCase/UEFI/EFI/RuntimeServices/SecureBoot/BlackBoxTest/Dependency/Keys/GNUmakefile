@@ -26,6 +26,7 @@
 
 BASE_NAME=SecureBoot
 TARGET=$(BIN_DIR)/$(BASE_NAME)
+SOURCE_DIR=$(WORKSPACE)/SctPkg/TestCase/UEFI/EFI/RuntimeServices/SecureBoot/BlackBoxTest/Dependency/Keys
 FUTURE_DATE=$(shell date --rfc-3339=date -d "+1 year")
 FUTURE_DATE2=$(shell date --rfc-3339=date -d "+1 day")
 FUTURE_DATE3=$(shell date --rfc-3339=date -d "+2 day")
@@ -34,6 +35,7 @@ PAST_DATE=$(shell date --rfc-3339=date -d "-1 year")
 ifdef KEYS_DIR
 TEST_KEK1_CRT=$(KEYS_DIR)/TestKEK1.crt
 TEST_DB1_CRT=$(KEYS_DIR)/TestDB1.crt
+TEST_DB1_KEY=$(KEYS_DIR)/TestDB1.key
 TEST_DBX1_CRT=$(KEYS_DIR)/TestDBX1.crt
 TEST_KEK1_KEY=$(KEYS_DIR)/TestKEK1.key
 TEST_PK1_CRT=$(KEYS_DIR)/TestPK1.crt
@@ -46,10 +48,18 @@ TEST_PK1_CRT=$(BIN_DIR)/SecureBoot_TestPK1.crt
 TEST_PK1_KEY=$(BIN_DIR)/SecureBoot_TestPK1.key
 endif
 
-all: $(TEST_KEYS) TestKEK2 KEKSigList1.auth TestImage1.bin NullKEK.auth NullDB.auth NullDBX.auth TestKEK1.auth TestDB1.auth TestDBX1.auth SignCert1 dbSigList1.auth SignCert2 SignCert3 RevokedCert1 RevokedCert2 RevokedCert3 RevokedCert4 dbSigList2.auth dbSigList3.auth dbSigList4.auth
+all: $(TEST_KEYS) TestKEK2 KEKSigList1.auth TestImage1.bin TestImage2.bin TestImage3.bin NullKEK.auth NullDB.auth NullDBX.auth TestKEK1.auth TestDB1.auth TestDBX1.auth SignCert1 dbSigList1.auth SignCert2 SignCert3 RevokedCert1 RevokedCert2 RevokedCert3 RevokedCert4 dbSigList2.auth dbSigList3.auth dbSigList4.auth DBXRevokedList1.auth
 
 TestImage1.bin:
-	head -c 16K </dev/urandom > $(TARGET)_$(@)
+	cp $(SOURCE_DIR)/Application2.efi $(TARGET)_$(@)
+
+TestImage2.bin: SignCert1
+	cp $(SOURCE_DIR)/Application2.efi $(TARGET)_$(@)
+	sbsign --key $(TARGET)_SignCert1.key --cert $(TARGET)_SignCert1.crt $(TARGET)_$(@) --output $(TARGET)_$(@)
+
+TestImage3.bin: SignCert2
+	cp $(SOURCE_DIR)/Application2.efi $(TARGET)_$(@)
+	sbsign --key $(TARGET)_SignCert2.key --cert $(TARGET)_SignCert2.crt $(TARGET)_$(@) --output $(TARGET)_$(@)
 
 TestImage5.bin:
 	cp $(BIN_DIR)/Ebc_EbcDriver.efi $(TARGET)_$(@)
@@ -154,6 +164,15 @@ dbSigList3.auth: dbSigListLong
 dbSigList4.auth: Sign_Cert4
 	cert-to-efi-sig-list $(BIN_DIR)/SecureBoot_Sign_Cert4.crt $(BIN_DIR)/SecureBoot_TestDB9.esl
 	sign-efi-sig-list -c $(BIN_DIR)/SecureBoot_TestKEK2.crt -k $(BIN_DIR)/SecureBoot_TestKEK2.key -t "$(FUTURE_DATE3)" db $(BIN_DIR)/SecureBoot_TestDB9.esl $(BIN_DIR)/SecureBoot_DBSigList4.auth
+
+DBXRevokedList1.auth: RevokedCert1 RevokedCert2 RevokedCert3 RevokedCert4 TestImage5.bin
+	cert-to-efi-sig-list $(BIN_DIR)/SecureBoot_RevokedCert1.crt $(BIN_DIR)/SecureBoot_RevokedCert1.esl
+	cert-to-efi-sig-list $(BIN_DIR)/SecureBoot_RevokedCert2.crt $(BIN_DIR)/SecureBoot_RevokedCert2.esl
+	cert-to-efi-sig-list $(BIN_DIR)/SecureBoot_RevokedCert3.crt $(BIN_DIR)/SecureBoot_RevokedCert3.esl
+	cert-to-efi-sig-list $(BIN_DIR)/SecureBoot_RevokedCert4.crt $(BIN_DIR)/SecureBoot_RevokedCert4.esl
+	hash-to-efi-sig-list $(BIN_DIR)/SecureBoot_TestImage5.bin $(BIN_DIR)/SecureBoot_TestImage5Hash.esl
+	cat $(BIN_DIR)/SecureBoot_RevokedCert1.esl $(BIN_DIR)/SecureBoot_RevokedCert2.esl $(BIN_DIR)/SecureBoot_RevokedCert3.esl  $(BIN_DIR)/SecureBoot_RevokedCert4.esl $(BIN_DIR)/SecureBoot_TestImage5Hash.esl  > $(BIN_DIR)/SecureBoot_DBXRevokedList1.esl
+	sign-efi-sig-list -c $(TEST_KEK1_CRT) -k $(TEST_KEK1_KEY) -t "$(FUTURE_DATE2)" dbx $(BIN_DIR)/SecureBoot_DBXRevokedList1.esl $(BIN_DIR)/SecureBoot_DBXRevokedList1.auth
 
 clean:
 	$(RM) $(BIN_DIR)/$(TARGET)_*.key

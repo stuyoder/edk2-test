@@ -39,6 +39,7 @@ Abstract:
 EFI_DEVICE_PATH_PROTOCOL        *gDevicePath     = NULL;
 CHAR16                          *gFilePath       = NULL;
 EFI_HANDLE                      gDeviceHandle;
+EFI_HANDLE                      mImageHandle;
 
 //
 // internal helper function.
@@ -124,6 +125,8 @@ GetSystemDevicePathAndFilePath (
   EFI_STATUS                  Status;
   EFI_LOADED_IMAGE_PROTOCOL   *Image;
 
+  gImageHandle = ImageHandle;
+
   //
   // Get the image instance from the image handle
   //
@@ -137,6 +140,7 @@ GetSystemDevicePathAndFilePath (
   }
 
   gDeviceHandle = Image->DeviceHandle;
+
 
   //
   // Done, return status code EFI_SUCCESS
@@ -612,7 +616,7 @@ SecureBootVariableCleanup (
   Status = RT->SetVariable (
                      L"dbx",                     // VariableName
                      &gEfiImageSecurityDatabaseGuid,   // VendorGuid
-                     BXAttributes,             // Attributes
+                     DBXAttributes,             // Attributes
                      BufferSize,                // DataSize
                      Buffer                     // Data
                      );

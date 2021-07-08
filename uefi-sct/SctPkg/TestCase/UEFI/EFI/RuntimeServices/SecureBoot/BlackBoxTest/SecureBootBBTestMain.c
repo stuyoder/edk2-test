@@ -67,6 +67,15 @@ EFI_BB_TEST_ENTRY_FIELD gBBTestEntryField[] = {
     EFI_TEST_CASE_AUTO,
     VariableUpdatesTest
   },
+  {
+    IMAGE_LOADING_TEST_GUID,
+    L"ImageLoading",
+    L"Verifies Secure Boot image loading.",
+    EFI_TEST_LEVEL_MINIMAL,
+    gSupportProtocolGuid,
+    EFI_TEST_CASE_AUTO,
+    ImageLoadingTest
+  },
 
   0
 };
