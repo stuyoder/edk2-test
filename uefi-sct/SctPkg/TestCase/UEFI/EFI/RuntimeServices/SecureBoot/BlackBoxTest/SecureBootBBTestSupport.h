@@ -62,4 +62,12 @@ OpenFileAndGetSize (
   OUT UINT32          *FileSize
   );
 
+EFI_STATUS
+SecureBootVariableCleanup (
+  IN EFI_RUNTIME_SERVICES                 *RT,
+  IN EFI_STANDARD_TEST_LIBRARY_PROTOCOL   *StandardLib,
+  IN EFI_TEST_LOGGING_LIBRARY_PROTOCOL    *LoggingLib,
+  EFI_TEST_PROFILE_LIBRARY_PROTOCOL   *ProfileLib
+  );
+
 #endif

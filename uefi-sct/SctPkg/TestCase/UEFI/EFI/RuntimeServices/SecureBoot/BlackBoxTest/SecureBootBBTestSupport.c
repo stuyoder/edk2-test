@@ -28,6 +28,10 @@ Abstract:
 #include "SecureBootBBTestMain.h"
 #include "SecureBootBBTestSupport.h"
 
+#define KEK_ATTRIBUTES (EFI_VARIABLE_NON_VOLATILE | EFI_VARIABLE_BOOTSERVICE_ACCESS | \
+                       EFI_VARIABLE_RUNTIME_ACCESS | EFI_VARIABLE_TIME_BASED_AUTHENTICATED_WRITE_ACCESS)
+
+
 //
 // globals variables
 //
@@ -214,4 +218,416 @@ OpenFileAndGetSize (
   //done successfully return EFI_SUCCESS.
   //
   return EFI_SUCCESS;
+}
+
+/**
+ *  Restore the secure boot variables to initial values.
+ *  The initial siglists are:
+ *     TestKEK1.auth
+ *     TestDB1.auth
+ *     TestDBX1.auth
+ *
+ *  @param StandardLib    A pointer to EFI_STANDARD_TEST_LIBRARY_PROTOCOL
+ *                        instance.
+ *  @param LoggingLib     A pointer to EFI_TEST_LOGGING_LIBRARY_PROTOCOL
+ *                        instance.
+ *  @param ProfileLib     A pointer to EFI_TEST_PROFILE_LIBRARY_PROTOCOL
+ *                        instance.
+ *  @return EFI_SUCCESS   Successfully.
+ *  @return Other value   Something failed.
+ */
+EFI_STATUS
+SecureBootVariableCleanup (
+  IN EFI_RUNTIME_SERVICES                 *RT,
+  IN EFI_STANDARD_TEST_LIBRARY_PROTOCOL   *StandardLib,
+  IN EFI_TEST_LOGGING_LIBRARY_PROTOCOL    *LoggingLib,
+  EFI_TEST_PROFILE_LIBRARY_PROTOCOL   *ProfileLib
+  )
+{
+  EFI_STATUS            Status;
+  EFI_TEST_ASSERTION    Result;
+  EFI_FILE_HANDLE       KeyFHandle;
+  UINT32                KeyFileSize;
+  CHAR16                *FileName;
+  VOID                  *Buffer;
+  UINTN                 BufferSize;
+  UINTN                 DataSize;
+  UINT32                DBAttributes;
+  UINT32                DBXAttributes;
+
+  Status = EFI_SUCCESS;
+
+  StandardLib->RecordMessage (
+                     StandardLib,
+                     EFI_VERBOSE_LEVEL_DEFAULT,
+                     L"SecureBootVariableCleanup: Doing cleanup of secure boot variables\n"
+                     );
+  //
+  // Clean up KEK, delete and replace with original value
+  //
+
+  // signed, empty siglist image to delete KEK
+  FileName = L"NullKEK.auth";
+
+  //
+  //read the key file into memory.
+  //
+  Status = OpenFileAndGetSize (
+             FileName,
+             &KeyFHandle,
+             &KeyFileSize
+             );
+
+  if (EFI_ERROR(Status)) {
+    return EFI_NOT_FOUND;
+  }
+
+  Buffer = SctAllocatePool (KeyFileSize);
+
+  if (Buffer == NULL) {
+    KeyFHandle->Close (KeyFHandle);
+    return EFI_OUT_OF_RESOURCES;
+  }
+
+  BufferSize = KeyFileSize;
+
+  Status = KeyFHandle->Read (
+                      KeyFHandle,
+                      &BufferSize,
+                      Buffer
+                      );
+
+  if (EFI_ERROR(Status)) {
+    KeyFHandle->Close (KeyFHandle);
+    gtBS->FreePool (Buffer);
+    return EFI_LOAD_ERROR;
+  }
+
+  Status = RT->SetVariable (
+                     L"KEK",                    // VariableName
+                     &gEfiGlobalVariableGuid,   // VendorGuid
+                     KEK_ATTRIBUTES,            // Attributes
+                     BufferSize,                // DataSize
+                     Buffer                     // Data
+                     );
+
+  if (Status != EFI_SUCCESS) {
+    StandardLib->RecordMessage (
+                     StandardLib,
+                     EFI_VERBOSE_LEVEL_DEFAULT,
+                     L"SecureBootVariableCleanup: KEK delete failed\n"
+                     );
+    Status = EFI_NOT_FOUND;
+  }
+
+  gtBS->FreePool (Buffer);
+
+  FileName = L"TestKEK1.auth";
+
+  //
+  //read the key file into memory.
+  //
+  Status = OpenFileAndGetSize (
+             FileName,
+             &KeyFHandle,
+             &KeyFileSize
+             );
+
+  if (EFI_ERROR(Status)) {
+    return EFI_NOT_FOUND;
+  }
+
+  Buffer = SctAllocatePool (KeyFileSize);
+
+  if (Buffer == NULL) {
+    KeyFHandle->Close (KeyFHandle);
+    return EFI_OUT_OF_RESOURCES;
+  }
+
+  BufferSize = KeyFileSize;
+
+  Status = KeyFHandle->Read (
+                      KeyFHandle,
+                      &BufferSize,
+                      Buffer
+                      );
+
+  if (EFI_ERROR(Status)) {
+    KeyFHandle->Close (KeyFHandle);
+    gtBS->FreePool (Buffer);
+    return EFI_LOAD_ERROR;
+  }
+
+  Status = RT->SetVariable (
+                     L"KEK",                    // VariableName
+                     &gEfiGlobalVariableGuid,   // VendorGuid
+                     KEK_ATTRIBUTES,            // Attributes
+                     BufferSize,                // DataSize
+                     Buffer                     // Data
+                     );
+
+  if (Status != EFI_SUCCESS) {
+    StandardLib->RecordMessage (
+                     StandardLib,
+                     EFI_VERBOSE_LEVEL_DEFAULT,
+                     L"SecureBootVariableCleanup: KEK clean up failed\n"
+                     );
+    Status = EFI_NOT_FOUND;
+  }
+
+  gtBS->FreePool (Buffer);
+
+  //
+  // Clean up db, delete and replace with original value
+  //
+
+  // get db variable attributes
+  DataSize = 0;
+  Status = RT->GetVariable (
+                 L"db",                          // VariableName
+                 &gEfiImageSecurityDatabaseGuid, // VendorGuid
+                 &DBAttributes,                  // Attributes
+                 &DataSize,                      // DataSize
+                 NULL                            // Data
+                 );
+
+  // signed, empty siglist image to delete db
+  FileName = L"NullDB.auth";
+
+  //
+  // read the siglist into memory.
+  //
+  Status = OpenFileAndGetSize (
+             FileName,
+             &KeyFHandle,
+             &KeyFileSize
+             );
+
+  if (EFI_ERROR(Status)) {
+    return EFI_NOT_FOUND;
+  }
+
+  Buffer = SctAllocatePool (KeyFileSize);
+
+  if (Buffer == NULL) {
+    KeyFHandle->Close (KeyFHandle);
+    return EFI_OUT_OF_RESOURCES;
+  }
+
+  BufferSize = KeyFileSize;
+
+  Status = KeyFHandle->Read (
+                      KeyFHandle,
+                      &BufferSize,
+                      Buffer
+                      );
+
+  if (EFI_ERROR(Status)) {
+    KeyFHandle->Close (KeyFHandle);
+    gtBS->FreePool (Buffer);
+    return EFI_LOAD_ERROR;
+  }
+
+  Status = RT->SetVariable (
+                     L"db",                    // VariableName
+                     &gEfiImageSecurityDatabaseGuid,   // VendorGuid
+                     DBAttributes,              // Attributes
+                     BufferSize,                // DataSize
+                     Buffer                     // Data
+                     );
+
+  if (Status != EFI_SUCCESS) {
+    StandardLib->RecordMessage (
+                     StandardLib,
+                     EFI_VERBOSE_LEVEL_DEFAULT,
+                     L"SecureBootVariableCleanup: db delete failed\n"
+                     );
+    Status = EFI_NOT_FOUND;
+  }
+
+  gtBS->FreePool (Buffer);
+
+  FileName = L"TestDB1.auth";
+
+  //
+  // read the siglist into memory.
+  //
+  Status = OpenFileAndGetSize (
+             FileName,
+             &KeyFHandle,
+             &KeyFileSize
+             );
+
+  if (EFI_ERROR(Status)) {
+    return EFI_NOT_FOUND;
+  }
+
+  Buffer = SctAllocatePool (KeyFileSize);
+
+  if (Buffer == NULL) {
+    KeyFHandle->Close (KeyFHandle);
+    return EFI_OUT_OF_RESOURCES;
+  }
+
+  BufferSize = KeyFileSize;
+
+  Status = KeyFHandle->Read (
+                      KeyFHandle,
+                      &BufferSize,
+                      Buffer
+                      );
+
+  if (EFI_ERROR(Status)) {
+    KeyFHandle->Close (KeyFHandle);
+    gtBS->FreePool (Buffer);
+    return EFI_LOAD_ERROR;
+  }
+
+  Status = RT->SetVariable (
+                     L"db",                     // VariableName
+                     &gEfiImageSecurityDatabaseGuid,   // VendorGuid
+                     DBAttributes,              // Attributes
+                     BufferSize,                // DataSize
+                     Buffer                     // Data
+                     );
+
+  if (Status != EFI_SUCCESS) {
+    StandardLib->RecordMessage (
+                     StandardLib,
+                     EFI_VERBOSE_LEVEL_DEFAULT,
+                     L"SecureBootVariableCleanup: db clean up failed\n"
+                     );
+    Status = EFI_NOT_FOUND;
+  }
+
+  gtBS->FreePool (Buffer);
+
+  //
+  // Clean up dbx, delete and replace with original value
+  //
+
+  // get dbx variable attributes
+  DataSize = 0;
+  Status = RT->GetVariable (
+                 L"dbx",                          // VariableName
+                 &gEfiImageSecurityDatabaseGuid, // VendorGuid
+                 &DBXAttributes,                  // Attributes
+                 &DataSize,                      // DataSize
+                 NULL                            // Data
+                 );
+
+  // signed, empty siglist image to delete dbx
+  FileName = L"NullDBX.auth";
+
+  //
+  // read the siglist into memory.
+  //
+  Status = OpenFileAndGetSize (
+             FileName,
+             &KeyFHandle,
+             &KeyFileSize
+             );
+
+  if (EFI_ERROR(Status)) {
+    return EFI_NOT_FOUND;
+  }
+
+  Buffer = SctAllocatePool (KeyFileSize);
+
+  if (Buffer == NULL) {
+    KeyFHandle->Close (KeyFHandle);
+    return EFI_OUT_OF_RESOURCES;
+  }
+
+  BufferSize = KeyFileSize;
+
+  Status = KeyFHandle->Read (
+                      KeyFHandle,
+                      &BufferSize,
+                      Buffer
+                      );
+
+  if (EFI_ERROR(Status)) {
+    KeyFHandle->Close (KeyFHandle);
+    gtBS->FreePool (Buffer);
+    return EFI_LOAD_ERROR;
+  }
+
+  Status = RT->SetVariable (
+                     L"dbx",                    // VariableName
+                     &gEfiImageSecurityDatabaseGuid,   // VendorGuid
+                     DBXAttributes,             // Attributes
+                     BufferSize,                // DataSize
+                     Buffer                     // Data
+                     );
+
+  if (Status != EFI_SUCCESS) {
+    StandardLib->RecordMessage (
+                     StandardLib,
+                     EFI_VERBOSE_LEVEL_DEFAULT,
+                     L"SecureBootVariableCleanup: dbx delete failed. Status=%r\n",
+                     Status
+                     );
+    Status = EFI_NOT_FOUND;
+  }
+
+  gtBS->FreePool (Buffer);
+
+  FileName = L"TestDBX1.auth";
+
+  //
+  // read the siglist into memory.
+  //
+  Status = OpenFileAndGetSize (
+             FileName,
+             &KeyFHandle,
+             &KeyFileSize
+             );
+
+  if (EFI_ERROR(Status)) {
+    return EFI_NOT_FOUND;
+  }
+
+  Buffer = SctAllocatePool (KeyFileSize);
+
+  if (Buffer == NULL) {
+    KeyFHandle->Close (KeyFHandle);
+    return EFI_OUT_OF_RESOURCES;
+  }
+
+  BufferSize = KeyFileSize;
+
+  Status = KeyFHandle->Read (
+                      KeyFHandle,
+                      &BufferSize,
+                      Buffer
+                      );
+
+  if (EFI_ERROR(Status)) {
+    KeyFHandle->Close (KeyFHandle);
+    gtBS->FreePool (Buffer);
+    return EFI_LOAD_ERROR;
+  }
+
+  Status = RT->SetVariable (
+                     L"dbx",                     // VariableName
+                     &gEfiImageSecurityDatabaseGuid,   // VendorGuid
+                     BXAttributes,             // Attributes
+                     BufferSize,                // DataSize
+                     Buffer                     // Data
+                     );
+
+  if (Status != EFI_SUCCESS) {
+    StandardLib->RecordMessage (
+                     StandardLib,
+                     EFI_VERBOSE_LEVEL_DEFAULT,
+                     L"SecureBootVariableCleanup: dbx clean up failed\n"
+                     );
+    Status = EFI_NOT_FOUND;
+  }
+
+  gtBS->FreePool (Buffer);
+
+  return Status;
+
 }
