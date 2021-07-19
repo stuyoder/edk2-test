@@ -480,8 +480,6 @@ ImageLoadingTestCheckpoint1 (
                      &ImageHandle
                      );
 
-  SctPrint(L"status = %x\n", Status);
-
   // As per UEFI spec, valid return codes for EFI_BOOT_SERVICES.LoadImage()
   // for signature check failures are security violation or access denied.
   if (Status == EFI_SECURITY_VIOLATION) {
@@ -497,6 +495,157 @@ ImageLoadingTestCheckpoint1 (
                  Result,
                  gSecureBootImageLoadingBbTestAssertionGuid001,
                  L"SecureBoot - Verify load of unsigned image.",
+                 L"%a:%d:Status - %r",
+                 __FILE__,
+                 (UINTN)__LINE__,
+                 Status
+                 );
+
+  //
+  //  Test assertion 2: Verify loading signed image, but not in db. Load image (TestImage2)
+  //  with signature matching no keys in DBSigList2.  Expect result: SECURITY_VIOLATION or
+  //  access denied.
+  //
+
+  FileName = L"TestImage2.bin";
+  EntireFileName = SctPoolPrint (L"%s\\%s", gFilePath, FileName);
+  FilePath = SctFileDevicePath (gDeviceHandle, EntireFileName);
+  SctFreePool (EntireFileName);
+
+  ImageHandle = NULL;
+  Status = gtBS->LoadImage (
+                     FALSE,
+                     gImageHandle,
+                     FilePath,
+                     NULL,
+                     0,
+                     &ImageHandle
+                     );
+
+  if (Status == EFI_SECURITY_VIOLATION) {
+    Result = EFI_TEST_ASSERTION_PASSED;
+  } else if (Status == EFI_ACCESS_DENIED && ImageHandle == NULL) {
+    Result = EFI_TEST_ASSERTION_PASSED;
+  } else {
+    Result = EFI_TEST_ASSERTION_FAILED;
+  }
+
+  StandardLib->RecordAssertion (
+                 StandardLib,
+                 Result,
+                 gSecureBootImageLoadingBbTestAssertionGuid002,
+                 L"SecureBoot - Verify load of signed image, but not in db.",
+                 L"%a:%d:Status - %r",
+                 __FILE__,
+                 (UINTN)__LINE__,
+                 Status
+                 );
+
+  //
+  //  Test assertion 3: Verify signed image with first signature in list.  Load image
+  //   (TestImage3) signed with first certificate in DBSigList2.  Expected result: SUCCESS.
+  //
+
+  FileName = L"TestImage3.bin";
+  EntireFileName = SctPoolPrint (L"%s\\%s", gFilePath, FileName);
+  FilePath = SctFileDevicePath (gDeviceHandle, EntireFileName);
+  SctFreePool (EntireFileName);
+
+  ImageHandle = NULL;
+  Status = gtBS->LoadImage (
+                     FALSE,
+                     gImageHandle,
+                     FilePath,
+                     NULL,
+                     0,
+                     &ImageHandle
+                     );
+
+  if (Status == EFI_SUCCESS) {
+    Result = EFI_TEST_ASSERTION_PASSED;
+  } else {
+    Result = EFI_TEST_ASSERTION_FAILED;
+  }
+
+  StandardLib->RecordAssertion (
+                 StandardLib,
+                 Result,
+                 gSecureBootImageLoadingBbTestAssertionGuid003,
+                 L"SecureBoot - Verify load of signed image, first signature in list.",
+                 L"%a:%d:Status - %r",
+                 __FILE__,
+                 (UINTN)__LINE__,
+                 Status
+                 );
+
+  //
+  //  Test assertion 4: Verify signed image with 2nd signature in list.  Load image (TestImage4)
+  //   signed with second certificate in DBSigList2.  Expected result: SUCCESS.
+  //
+
+  FileName = L"TestImage4.bin";
+  EntireFileName = SctPoolPrint (L"%s\\%s", gFilePath, FileName);
+  FilePath = SctFileDevicePath (gDeviceHandle, EntireFileName);
+  SctFreePool (EntireFileName);
+
+  ImageHandle = NULL;
+  Status = gtBS->LoadImage (
+                     FALSE,
+                     gImageHandle,
+                     FilePath,
+                     NULL,
+                     0,
+                     &ImageHandle
+                     );
+
+  if (Status == EFI_SUCCESS) {
+    Result = EFI_TEST_ASSERTION_PASSED;
+  } else {
+    Result = EFI_TEST_ASSERTION_FAILED;
+  }
+
+  StandardLib->RecordAssertion (
+                 StandardLib,
+                 Result,
+                 gSecureBootImageLoadingBbTestAssertionGuid004,
+                 L"SecureBoot - Verify load of signed image, second signature in list.",
+                 L"%a:%d:Status - %r",
+                 __FILE__,
+                 (UINTN)__LINE__,
+                 Status
+                 );
+
+  //
+  //  Test assertion 5: Verify unsigned image with hash in DB.  Load unsigned image (TestImage5)
+  //   with SHA256 hash in DBSigList2.  Expected result: SUCCESS
+  //
+
+  FileName = L"TestImage5.bin";
+  EntireFileName = SctPoolPrint (L"%s\\%s", gFilePath, FileName);
+  FilePath = SctFileDevicePath (gDeviceHandle, EntireFileName);
+  SctFreePool (EntireFileName);
+
+  ImageHandle = NULL;
+  Status = gtBS->LoadImage (
+                     FALSE,
+                     gImageHandle,
+                     FilePath,
+                     NULL,
+                     0,
+                     &ImageHandle
+                     );
+
+  if (Status == EFI_SUCCESS) {
+    Result = EFI_TEST_ASSERTION_PASSED;
+  } else {
+    Result = EFI_TEST_ASSERTION_FAILED;
+  }
+
+  StandardLib->RecordAssertion (
+                 StandardLib,
+                 Result,
+                 gSecureBootImageLoadingBbTestAssertionGuid005,
+                 L"SecureBoot - Verify load of unsigned image with hash in list.",
                  L"%a:%d:Status - %r",
                  __FILE__,
                  (UINTN)__LINE__,
