@@ -48,21 +48,46 @@ TEST_PK1_CRT=$(BIN_DIR)/SecureBoot_TestPK1.crt
 TEST_PK1_KEY=$(BIN_DIR)/SecureBoot_TestPK1.key
 endif
 
-all: $(TEST_KEYS) TestKEK2 KEKSigList1.auth TestImage1.bin TestImage2.bin TestImage3.bin NullKEK.auth NullDB.auth NullDBX.auth TestKEK1.auth TestDB1.auth TestDBX1.auth SignCert1 dbSigList1.auth SignCert2 SignCert3 RevokedCert1 RevokedCert2 RevokedCert3 RevokedCert4 dbSigList2.auth dbSigList3.auth dbSigList4.auth DBXRevokedList1.auth
+all: $(TEST_KEYS) TestKEK2 KEKSigList1.auth TestImage1.bin TestImage2.bin TestImage3.bin TestImage4.bin TestImage5.bin TestImage6.bin TestImage7.bin TestImage8.bin TestImage9.bin TestImage10.bin NullKEK.auth NullDB.auth NullDBX.auth TestKEK1.auth TestDB1.auth TestDBX1.auth SignCert1 dbSigList1.auth SignCert2 SignCert3 SignCert4 RevokedCert1 RevokedCert2 RevokedCert3 RevokedCert4 dbSigList2.auth dbSigList3.auth dbSigList4.auth DBXRevokedList1.auth
 
 TestImage1.bin:
-	cp $(SOURCE_DIR)/Application2.efi $(TARGET)_$(@)
+	cp $(SOURCE_DIR)/Application1.efi $(TARGET)_$(@)
 
 TestImage2.bin: SignCert1
-	cp $(SOURCE_DIR)/Application2.efi $(TARGET)_$(@)
+	cp $(SOURCE_DIR)/Application1.efi $(TARGET)_$(@)
 	sbsign --key $(TARGET)_SignCert1.key --cert $(TARGET)_SignCert1.crt $(TARGET)_$(@) --output $(TARGET)_$(@)
 
 TestImage3.bin: SignCert2
 	cp $(SOURCE_DIR)/Application2.efi $(TARGET)_$(@)
 	sbsign --key $(TARGET)_SignCert2.key --cert $(TARGET)_SignCert2.crt $(TARGET)_$(@) --output $(TARGET)_$(@)
 
+TestImage4.bin: SignCert3
+	cp $(SOURCE_DIR)/Application2.efi $(TARGET)_$(@)
+	sbsign --key $(TARGET)_SignCert3.key --cert $(TARGET)_SignCert3.crt $(TARGET)_$(@) --output $(TARGET)_$(@)
+
 TestImage5.bin:
-	cp $(BIN_DIR)/Ebc_EbcDriver.efi $(TARGET)_$(@)
+	cp $(SOURCE_DIR)/Application2.efi $(TARGET)_$(@)
+
+TestImage6.bin: RevokedCert1
+	cp $(SOURCE_DIR)/Application2.efi $(TARGET)_$(@)
+	sbsign --key $(TARGET)_RevokedCert1.key --cert $(TARGET)_RevokedCert1.crt $(TARGET)_$(@) --output $(TARGET)_$(@)
+
+TestImage7.bin: RevokedCert2
+	cp $(SOURCE_DIR)/Application2.efi $(TARGET)_$(@)
+	sbsign --key $(TARGET)_RevokedCert2.key --cert $(TARGET)_RevokedCert2.crt $(TARGET)_$(@) --output $(TARGET)_$(@)
+
+TestImage8.bin: RevokedCert3
+	cp $(SOURCE_DIR)/Application2.efi $(TARGET)_$(@)
+	sbsign --key $(TARGET)_RevokedCert3.key --cert $(TARGET)_RevokedCert3.crt $(TARGET)_$(@) --output $(TARGET)_$(@)
+
+TestImage9.bin: RevokedCert4
+	cp $(SOURCE_DIR)/Application2.efi $(TARGET)_$(@)
+	sbsign --key $(TARGET)_RevokedCert4.key --cert $(TARGET)_RevokedCert4.crt $(TARGET)_$(@) --output $(TARGET)_$(@)
+
+TestImage10.bin: SignCert3
+	cp $(SOURCE_DIR)/Application3.efi $(TARGET)_Unsigned_$(@)
+	cp $(SOURCE_DIR)/Application3.efi $(TARGET)_$(@)
+	sbsign --key $(TARGET)_SignCert3.key --cert $(TARGET)_SignCert3.crt $(TARGET)_$(@) --output $(TARGET)_$(@)
 
 TestPK1:
 	openssl req -x509 -sha256 -newkey rsa:2048 -subj /CN=ACS_TEST_PK/ -keyout $(TARGET)_$(@).key -out $(TARGET)_$(@).crt -nodes -days 4000
@@ -89,11 +114,11 @@ SignCert1:
 SignCert2:
 	openssl req -x509 -sha256 -newkey rsa:2048 -subj /CN=ACS_SignCert2/ -keyout $(TARGET)_$(@).key -out $(TARGET)_$(@).crt -nodes -days 4000
 
-Sign_Cert4:
-	openssl req -x509 -sha256 -newkey rsa:2048 -subj /CN=ACS_Sign_Cert3/ -keyout $(TARGET)_$(@).key -out $(TARGET)_$(@).crt -nodes -days 4000
-
 SignCert3:
 	openssl req -x509 -sha256 -newkey rsa:2048 -subj /CN=ACS_SignCert3/ -keyout $(TARGET)_$(@).key -out $(TARGET)_$(@).crt -nodes -days 4000
+
+SignCert4:
+	openssl req -x509 -sha256 -newkey rsa:2048 -subj /CN=ACS_SignCert4/ -keyout $(TARGET)_$(@).key -out $(TARGET)_$(@).crt -nodes -days 4000
 
 RevokedCert1:
 	openssl req -x509 -sha256 -newkey rsa:2048 -subj /CN=ACS_RevokedCert1/ -keyout $(TARGET)_$(@).key -out $(TARGET)_$(@).crt -nodes -days 4000
@@ -146,14 +171,14 @@ KEKSigList3.auth: TestKEK3
 	sign-efi-sig-list -c $(TEST_PK1_CRT) -k $(TEST_PK1_KEY) KEK $(BIN_DIR)/SecureBoot_KEKSigList1.esl $(BIN_DIR)/SecureBoot_KEKSigList1.auth
 
 dbSigListLong: SignCert2 SignCert3 RevokedCert1 RevokedCert2 RevokedCert3 RevokedCert4 TestImage5.bin
-	cert-to-efi-sig-list $(BIN_DIR)/SecureBoot_SignCert2.crt $(BIN_DIR)/SecureBoot_TestDB2.esl
-	cert-to-efi-sig-list $(BIN_DIR)/SecureBoot_SignCert3.crt $(BIN_DIR)/SecureBoot_TestDB3.esl
-	cert-to-efi-sig-list $(BIN_DIR)/SecureBoot_RevokedCert1.crt $(BIN_DIR)/SecureBoot_TestDB4.esl
-	cert-to-efi-sig-list $(BIN_DIR)/SecureBoot_RevokedCert2.crt $(BIN_DIR)/SecureBoot_TestDB5.esl
-	cert-to-efi-sig-list $(BIN_DIR)/SecureBoot_RevokedCert3.crt $(BIN_DIR)/SecureBoot_TestDB6.esl
-	cert-to-efi-sig-list $(BIN_DIR)/SecureBoot_RevokedCert4.crt $(BIN_DIR)/SecureBoot_TestDB7.esl
-	hash-to-efi-sig-list $(BIN_DIR)/SecureBoot_TestImage5.bin $(BIN_DIR)/SecureBoot_TestDB8.esl
-	cat $(BIN_DIR)/SecureBoot_TestDB2.esl $(BIN_DIR)/SecureBoot_TestDB3.esl $(BIN_DIR)/SecureBoot_TestDB4.esl $(BIN_DIR)/SecureBoot_TestDB5.esl $(BIN_DIR)/SecureBoot_TestDB6.esl  $(BIN_DIR)/SecureBoot_TestDB7.esl $(BIN_DIR)/SecureBoot_TestDB8.esl  > $(BIN_DIR)/SecureBoot_DBSigListLong.esl
+	cert-to-efi-sig-list -g 11111111-2222-3333-4444-000000000002 $(BIN_DIR)/SecureBoot_SignCert2.crt $(BIN_DIR)/SecureBoot_TestDB2.esl
+	cert-to-efi-sig-list -g 11111111-2222-3333-4444-000000000003 $(BIN_DIR)/SecureBoot_SignCert3.crt $(BIN_DIR)/SecureBoot_TestDB3.esl
+	cert-to-efi-sig-list -g 11111111-2222-3333-4444-0000000000C1 $(BIN_DIR)/SecureBoot_RevokedCert1.crt $(BIN_DIR)/SecureBoot_TestDB4.esl
+	cert-to-efi-sig-list -g 11111111-2222-3333-4444-0000000000C2 $(BIN_DIR)/SecureBoot_RevokedCert2.crt $(BIN_DIR)/SecureBoot_TestDB5.esl
+	cert-to-efi-sig-list -g 11111111-2222-3333-4444-0000000000C3 $(BIN_DIR)/SecureBoot_RevokedCert3.crt $(BIN_DIR)/SecureBoot_TestDB6.esl
+	cert-to-efi-sig-list -g 11111111-2222-3333-4444-0000000000C4 $(BIN_DIR)/SecureBoot_RevokedCert4.crt $(BIN_DIR)/SecureBoot_TestDB7.esl
+	hash-to-efi-sig-list $(BIN_DIR)/SecureBoot_TestImage5.bin $(BIN_DIR)/SecureBoot_Hash1.esl
+	cat $(BIN_DIR)/SecureBoot_TestDB2.esl $(BIN_DIR)/SecureBoot_TestDB3.esl $(BIN_DIR)/SecureBoot_TestDB4.esl $(BIN_DIR)/SecureBoot_TestDB5.esl $(BIN_DIR)/SecureBoot_TestDB6.esl  $(BIN_DIR)/SecureBoot_TestDB7.esl $(BIN_DIR)/SecureBoot_Hash1.esl  > $(BIN_DIR)/SecureBoot_DBSigListLong.esl
 
 dbSigList2.auth: dbSigListLong
 	sign-efi-sig-list -c $(TEST_KEK1_CRT) -k $(TEST_KEK1_KEY) -t "$(FUTURE_DATE2)" db $(BIN_DIR)/SecureBoot_DBSigListLong.esl $(BIN_DIR)/SecureBoot_DBSigList2.auth
@@ -161,17 +186,17 @@ dbSigList2.auth: dbSigListLong
 dbSigList3.auth: dbSigListLong
 	sign-efi-sig-list -c $(TEST_KEK1_CRT) -k $(TEST_KEK1_KEY) -t "$(FUTURE_DATE2)" dbx $(BIN_DIR)/SecureBoot_DBSigListLong.esl $(BIN_DIR)/SecureBoot_DBSigList3.auth
 
-dbSigList4.auth: Sign_Cert4
-	cert-to-efi-sig-list $(BIN_DIR)/SecureBoot_Sign_Cert4.crt $(BIN_DIR)/SecureBoot_TestDB9.esl
+dbSigList4.auth: SignCert4
+	cert-to-efi-sig-list $(BIN_DIR)/SecureBoot_SignCert4.crt $(BIN_DIR)/SecureBoot_TestDB9.esl
 	sign-efi-sig-list -c $(BIN_DIR)/SecureBoot_TestKEK2.crt -k $(BIN_DIR)/SecureBoot_TestKEK2.key -t "$(FUTURE_DATE3)" db $(BIN_DIR)/SecureBoot_TestDB9.esl $(BIN_DIR)/SecureBoot_DBSigList4.auth
 
-DBXRevokedList1.auth: RevokedCert1 RevokedCert2 RevokedCert3 RevokedCert4 TestImage5.bin
+DBXRevokedList1.auth: RevokedCert1 RevokedCert2 RevokedCert3 RevokedCert4
 	cert-to-efi-sig-list $(BIN_DIR)/SecureBoot_RevokedCert1.crt $(BIN_DIR)/SecureBoot_RevokedCert1.esl
 	cert-to-efi-sig-list $(BIN_DIR)/SecureBoot_RevokedCert2.crt $(BIN_DIR)/SecureBoot_RevokedCert2.esl
 	cert-to-efi-sig-list $(BIN_DIR)/SecureBoot_RevokedCert3.crt $(BIN_DIR)/SecureBoot_RevokedCert3.esl
 	cert-to-efi-sig-list $(BIN_DIR)/SecureBoot_RevokedCert4.crt $(BIN_DIR)/SecureBoot_RevokedCert4.esl
-	hash-to-efi-sig-list $(BIN_DIR)/SecureBoot_TestImage5.bin $(BIN_DIR)/SecureBoot_TestImage5Hash.esl
-	cat $(BIN_DIR)/SecureBoot_RevokedCert1.esl $(BIN_DIR)/SecureBoot_RevokedCert2.esl $(BIN_DIR)/SecureBoot_RevokedCert3.esl  $(BIN_DIR)/SecureBoot_RevokedCert4.esl $(BIN_DIR)/SecureBoot_TestImage5Hash.esl  > $(BIN_DIR)/SecureBoot_DBXRevokedList1.esl
+	hash-to-efi-sig-list $(BIN_DIR)/SecureBoot_Unsigned_TestImage10.bin $(BIN_DIR)/SecureBoot_RevokedHash1.esl
+	cat $(BIN_DIR)/SecureBoot_RevokedCert1.esl $(BIN_DIR)/SecureBoot_RevokedCert2.esl $(BIN_DIR)/SecureBoot_RevokedCert3.esl  $(BIN_DIR)/SecureBoot_RevokedCert4.esl $(BIN_DIR)/SecureBoot_RevokedHash1.esl > $(BIN_DIR)/SecureBoot_DBXRevokedList1.esl
 	sign-efi-sig-list -c $(TEST_KEK1_CRT) -k $(TEST_KEK1_KEY) -t "$(FUTURE_DATE2)" dbx $(BIN_DIR)/SecureBoot_DBXRevokedList1.esl $(BIN_DIR)/SecureBoot_DBXRevokedList1.auth
 
 clean:
